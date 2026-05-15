@@ -1,0 +1,142 @@
+line follower code 
+
+#define ENA 6
+#define ENB 5
+
+#define IN1 7
+#define IN2 8
+#define IN3 9
+#define IN4 10
+
+#define LEFT_IR 4
+#define RIGHT_IR 3
+
+#define TRIG 11
+#define ECHO 12
+
+int speedNormal = 120;
+int speedTurn = 90;
+
+bool obstacle = false;
+int stableCount = 0;
+
+void setup() {
+
+  pinMode(ENA, OUTPUT);
+  pinMode(ENB, OUTPUT);
+
+  pinMode(IN1, OUTPUT);
+  pinMode(IN2, OUTPUT);
+  pinMode(IN3, OUTPUT);
+  pinMode(IN4, OUTPUT);
+
+  pinMode(LEFT_IR, INPUT);
+  pinMode(RIGHT_IR, INPUT);
+
+  pinMode(TRIG, OUTPUT);
+  pinMode(ECHO, INPUT);
+
+  stopRobot();
+}
+
+void loop() {
+
+  int dist = getDistance();
+
+  // 🔴 STABILITY FILTER (IMPORTANT FIX)
+  if (dist > 0 && dist < 15) {
+    stableCount++;
+  } else {
+    stableCount = 0;
+  }
+
+  // 🔴 ONLY CONFIRM AFTER 3 READINGS
+  if (stableCount >= 3) {
+    obstacle = true;
+  }
+
+  if (obstacle == true) {
+    stopRobot();
+    delay(300);   // hold stop
+    return;
+  }
+
+  int L = digitalRead(LEFT_IR);
+  int R = digitalRead(RIGHT_IR);
+
+  // 🟡 LINE FOLLOW
+  if (L == LOW && R == LOW) {
+    forward();
+  }
+  else if (L == HIGH && R == LOW) {
+    left();
+  }
+  else if (L == LOW && R == HIGH) {
+    right();
+  }
+  else {
+    forward();
+  }
+}
+
+// ---------- ULTRASONIC ----------
+int getDistance() {
+
+  digitalWrite(TRIG, LOW);
+  delayMicroseconds(2);
+
+  digitalWrite(TRIG, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(TRIG, LOW);
+
+  long duration = pulseIn(ECHO, HIGH, 25000);
+
+  if (duration == 0) return 999;
+
+  return duration * 0.034 / 2;
+}
+
+// ---------- MOTORS ----------
+void forward() {
+  analogWrite(ENA, speedNormal);
+  analogWrite(ENB, speedNormal);
+
+  digitalWrite(IN1, HIGH);
+  digitalWrite(IN2, LOW);
+
+  digitalWrite(IN3, HIGH);
+  digitalWrite(IN4, LOW);
+}
+
+void left() {
+  analogWrite(ENA, speedTurn);
+  analogWrite(ENB, speedNormal);
+
+  digitalWrite(IN1, HIGH);
+  digitalWrite(IN2, LOW);
+
+  digitalWrite(IN3, LOW);
+  digitalWrite(IN4, HIGH);
+}
+
+void right() {
+  analogWrite(ENA, speedNormal);
+  analogWrite(ENB, speedTurn);
+
+  digitalWrite(IN1, LOW);
+  digitalWrite(IN2, HIGH);
+
+  digitalWrite(IN3, HIGH);
+  digitalWrite(IN4, LOW);
+}
+
+void stopRobot() {
+  analogWrite(ENA, 0);
+  analogWrite(ENB, 0);
+
+  digitalWrite(IN1, LOW);
+  digitalWrite(IN2, LOW);
+
+  digitalWrite(IN3, LOW);
+  digitalWrite(IN4, LOW);
+}
